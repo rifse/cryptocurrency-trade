@@ -1,5 +1,8 @@
 {
+
 	"exchanges": {
     		"bitstamp": {"ln": 0}
-	}
+	},
+	"currencies": ["eth", "btc", "link", "eur"]
+		
 }

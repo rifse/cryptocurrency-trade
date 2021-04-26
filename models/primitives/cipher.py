@@ -28,8 +28,10 @@ def decrypt(encrypted_file, line_number):  # encrypted_file is a path and must b
 
     cipher = AES.new(key, AES.MODE_EAX, nonce)
     data = cipher.decrypt_and_verify(ct, tag).decode('utf-8').split('\n')[line_number].split(' ')
+    # try:
 
-    return (part for part in data)
+    # return (part for part in data)
+    return [part for part in data]
 
 
 if __name__ == '__main__':

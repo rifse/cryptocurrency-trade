@@ -75,11 +75,19 @@ class Data:
             cls.logger.exception('KEYERROR_1 IN Data._applyChanges')
 
 class Adapter(bitstamp.client.Trading):
-    def __init__(self, user_name, key, secret):
-        super().__init__(user_name, key, secret)
+
+    def __init__(self, **kwds):
+        kwds['username'] = kwds.pop('user')
+        super().__init__(**kwds)
 
     def orderBook(self):
         pass
+
+    def balances(self, currencies):  # currencies is a list
+        balances = {}
+        for c in currencies:
+            balances.update({c: self.account_balance(c, "usd")})
+        return balances
 
     # def ticker(self):
     #     return self.ticker()

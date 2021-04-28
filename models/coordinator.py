@@ -1,7 +1,10 @@
-#coordinator.py
-from dataclasses import dataclass, field
+# from dataclasses import dataclass, field
 import primitives
 
+class ManagePortfolio:
+
+
+"""
 @dataclass
 class Ceo:
     "Class for coordinating over exchanges"
@@ -23,7 +26,7 @@ class Ceo:
     
     def importExchange(self):
         self.exchangeClass = __import__(self.exchange+".client")
-
+"""
 
 if __name__ == '__main__':
     # userGen('bitstamp')

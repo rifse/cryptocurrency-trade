@@ -2,8 +2,8 @@ from binance.client import Client
 # from binance.websockets import BinanceSocketManager
 
 class Adapter(Client):
-    def __init__(self, api_key=None, api_secret=None):
-        super().__init__(api_key, api_secret)
+    # def __init__(self, api_key=None, api_secret=None):
+    #     super().__init__(api_key, api_secret)
 
     def orderBook(self):
         pass

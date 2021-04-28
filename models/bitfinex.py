@@ -1,6 +1,8 @@
-from binance.client import Client
 
 class Adapter(Client):
+    # PLACEHOLDER
+    pass
+    """
     def __init__(self, api_key=None, api_secret=None):
         super().__init__(api_key, api_secret)
 
@@ -9,6 +11,7 @@ class Adapter(Client):
 
     def tickers(self):
         return self.get_all_tickers()
+    """
 
 
 if __name__ == '__main__':

@@ -25,4 +25,3 @@ if __name__ == '__main__':
     test = Adapter('m', 'Bitstamp')
     # print(test.__dict__) 
     print(test.balances()) 
-

@@ -16,7 +16,7 @@ class Data:
     logger = logging.getLogger('bitstamp')
     uri = 'wss://ws.bitstamp.net'
     channels = {'live_trades',} 
-    pairs = {'btcusd': {}, 'ethbtc': {}, 'ethusd': {}}
+    pairs = {'btcusd': {}, 'ethbtc': {}, 'ethusd': {}, 'linketh': {}}
 
     logger.debug(logging.root.manager.loggerDict)
 
@@ -80,20 +80,35 @@ class Adapter(bitstamp.client.Trading):
         kwds['username'] = kwds.pop('user')
         super().__init__(**kwds)
 
-    def orderBook(self):
-        pass
-
     def balances(self, currencies):  # currencies is a list
         balances = {}
         for c in currencies:
             balances.update({c: self.account_balance(c, "usd")})
         return balances
 
-    # def ticker(self):
-    #     return self.ticker()
+    def getMinOrder(self, pair):
+        bq = pair.split('_')
+        quote = bq[1]
+        if quote == 'btc':
+            pass
+        elif quote == 'eth':
+            pass
+        elif quote in ['usd', 'eur', 'gbp', 'pax', 'usdc', 'dai']:
+            pass
+        else:
+            raise ValueError('Wrong pair format!')
+
+    def orderBook(self, pair):
+        bq = pair.split('_')
+        return self.order_book(base=bq[0], quote=bq[1])
+
+    def marketOrder(self, pair, side, amount):
+        bq = pair.split('_')
+        function = self.buy_market_order if side == 'buy' else self.sell_market_order
+        return function(amount=amount, base=bq[0], quote=bq[1])
 
 
 if __name__ == '__main__':
-    # Data.runForever()
-    a = Adapter().ticker()
-    print(a)
+    Data.runForever()
+    # a = Adapter().ticker()
+    # print(a)

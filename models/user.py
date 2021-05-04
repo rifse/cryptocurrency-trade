@@ -19,9 +19,23 @@ class Adapter:
     def balances(self):
         return self.exchange.balances(self.data['currencies'])
 
+    def orderBook(self, pair):
+        return self.exchange.orderBook(pair)
+
+    def marketOrder(self, pair, side, amount):
+        return self.exchange.marketOrder(pair, side, amount)
+        
+    def crawlingStopLimit(self):
+        pass
+    
+
 
 
 if __name__ == '__main__':
     test = Adapter('m', 'Bitstamp')
     # print(test.__dict__) 
-    print(test.balances()) 
+    # test.orderBook('link_eth')
+
+    # test.balances()
+    # test.marketOrder(pair='link_eth', side='buy', amount=1.5)
+    test.balances()

@@ -4,56 +4,98 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 
+class Calculator:
 
-class DataHandler:
-
-    def __init__(self, history_file, movingAverages):
-        self.movingAverages = movingAverages
-        self.convert_history(history_file)
-        # self.calculate_log_Closes()
-        # self.logReg_curveFit(logReg_accuracy)
-        self.movingAverages_get(movingAverages)
-        self.calculate_quotients([[movingAverages[0], movingAverages[1]]])
-        # self.calculate_logarithmQuotients([self.MA_1, self.MA_2])
-        # self.calculate_log_priceDivByMA(movingAverages[2])
-
-    def predictor_log(self, x, a, b, c, d):
+    @staticmethod
+    def predictor_log(x, a, b, c, d):
+        # represents a generic logarithm: y = b*((log_d)(x - c)) + a  
         return a+b*np.log2(x-c)/np.log2(d)
 
-    def predictor_lin(self, x, k, n):
+    @staticmethod
+    def predictor_lin(x, k, n):
         return k*x+n
 
-    def predictor_exp(self, x, a, b, c):
+    @staticmethod
+    def predictor_exp(x, a, b, c):
         return np.exp(a*x+b)+c
-        # return np.exp(self.predictor_lin(x, a, b)) + c
+        # return np.exp(Calculator.predictor_lin(x, a, b)) + c
 
-    def convert_history(self, file_csv_dir):
+    @staticmethod
+    def normalize_vector(vector):
+        norm = np.abs(vector.min()) if np.abs(vector.min()) > vector.max() else vector.max()
+        return np.divide(vector, norm)
+
+class Data:
+    # (price-log)/log
+    # log(price/20wMA)
+    def __init__(self, history_file='../data/btc-usd.csv'):
+        self.history = self.convertHistory(history_file)
+        # self.calculate_log_Closes()
+        # self.logReg_curveFit(logReg_accuracy)
+        ##self.movingAverages_get(movingAverages)
+        ##self.calculate_quotients([[movingAverages[0], movingAverages[1]]], plus_log=True) # self.calculate_logarithmQuotients([self.MA_1, self.MA_2])
+        # self.calculate_log_priceDivByMA(movingAverages[2])
+
+    # @staticmethod
+    def convertHistory(self, file_csv_dir):
         history = pd.read_csv(file_csv_dir, comment='#')
+
         # df['index'] = df.index
         # df.set_index('Date', inplace=True)
         history['day'] = history.Timestamp
+
         # history['day_sinceD1'] = (pd.Timestamp(history.day)-pd.Timestamp(history.day.iloc[0,:])).days
         history['close'] = history.Close
         history['close_log'] = np.log10(history.close)
-        self.history = history[['day', 'close', 'close_log']]
+        return history[['day', 'close', 'close_log']]
+        # self.history = history[['day', 'close', 'close_log']]
 
-    def movingAverages_get(self, movingAverages):
-        for days_n in movingAverages:
-            self.history['MA_{}'.format(days_n)] = self.history.close.astype(float).rolling(window=days_n).mean()
-            # self.data['MA_{}'.format(days)] = self.data.iloc[0].rolling(window=days).mean()
+    def plotLoga(self, data_columns=['close_log'], right_yAxis=False, right_columns=None):  # right_columns=['risk00']
+        months = pd.to_datetime(self.history.day, format='%Y-%m-%d %H:%M:%S.%f')
+        history_toPlot = self.history.set_index(months, inplace=False)
+        for column in data_columns:
+            history_toPlot[column].plot()
+        if right_yAxis:
+            for column in right_columns:
+                history_toPlot[column].plot(secondary_y=True, x_compat=True)
+        plt.legend(loc='best')
+        plt.show()
 
-    def calculate_quotients(self, quotient_pairs, plusLog=True):
+class Simple(Data):
+
+    def __init__(self, history_file, moving_averages=[50, 350]):
+        super().__init__(history_file)
+        self.getMovingAverages(moving_averages)
+        self.getQuotients([[moving_averages[0], moving_averages[1]]], plus_loga=True)
+
+    def getMovingAverages(self, moving_averages):
+        self.moving_averages = moving_averages
+        for days in moving_averages:
+            self.history['MA-{}'.format(days)] = self.history.close.astype(float).rolling(window=days).mean()
+
+    def getQuotients(self, quotient_pairs, plus_loga=True):
         for pair in quotient_pairs:
-            # pair = pair.split('_')
             MA_0 = pair[0]
             MA_1 = pair[1]
-            quotient = np.divide(self.history['MA_{}'.format(MA_0)], self.history['MA_{}'.format(MA_1)])
-            self.history['quotient_{}_{}'.format(MA_0, MA_1)] = quotient
-            # day_max = quotient.idxmax()
-            # self.data['quotient_{}_{}'.format(MA_0, MA_1)] = np.divide(quotient, quotient[day_max])
-            # print('max quotient {}, dne {}'.format(quotient[day_max], day_max))
-            if plusLog:
-                self.history['quotient_{}_{}_log'.format(MA_0, MA_1)] = np.log10(quotient)
+            quotient = np.divide(self.history['MA-{}'.format(MA_0)], self.history['MA-{}'.format(MA_1)])
+            self.history['quotient-{}_{}'.format(MA_0, MA_1)] = quotient
+            if plus_loga:
+                self.history['log-quotient-{}_{}'.format(MA_0, MA_1)] = np.log10(quotient)
+
+    def getRisk(self, plot=False):
+        risk = self.history['log-quotient-{}_{}'.format(self.moving_averages[0], self.moving_averages[1])]
+        min_el = risk.min(skipna=True)
+
+        risk = risk + np.abs(min_el)
+        self.history['maybeBetter'] = Calculator.normalize_vector(risk)
+        if plot:
+            self.history['simpleRisk'] = Calculator.normalize_vector(self.history['quotient-{}_{}'.format(self.moving_averages[0], self.moving_averages[1])])
+            self.plotLoga(right_yAxis=True, right_columns=['simpleRisk', 'maybeBetter'])
+
+class RevEng(Data):
+
+    def __init__(self, history_file, moving_averages=[50, 350]):
+        super().__init__(history_file)
 
     def cowen_relInd_1(self, plot=False):
         # indicator = (self.history.close_log-self.history.LR_bottom)/abs(self.history.LR_bottom)
@@ -64,17 +106,16 @@ class DataHandler:
         if plot:
             self.plot_log(['indicator_1'])
 
-    def normalize_vector(self, vector):
-        if np.abs(vector.min()) > np.abs(vector.max()):
-            normalizator = np.abs(vector.min())
-        else:
-            normalizator = np.abs(vector.max())
-        return np.divide(vector, normalizator)
-
     def getRisk_00(self, plot=False):
-        risk = self.history['quotient_{}_{}_log'.format(self.movingAverages[0], self.movingAverages[1])]
-        risk = np.multiply(risk, self.history.indicator_1)
-        self.history['risk00'] = risk
+        # risk = self.history['log-quotient-{}_{}'.format(self.movingAverages[0], self.movingAverages[1])]
+        risk = self.history['quotient-{}_{}'.format(self.movingAverages[0], self.movingAverages[1])]
+        # # risk = np.multiply(risk, self.history.indicator_1)
+        # print(risk.min(skipna=True))
+        min_el = risk.min(skipna=True)
+
+        # risk = risk + np.abs(min_el)
+        self.history['risk00'] = Calculator.normalize_vector(risk)
+        # self.history['risk00'] = risk
         if plot:
             self.plot_log(right_yAxis=True, right_columns=['risk00'])
         # risk_proto = self.normalize_vector(self.history['quotient_{}_{}'.format(MA_1, MA_2)])
@@ -83,8 +124,8 @@ class DataHandler:
         # self.history['risk_00'] = risk_proto
 
     def LR_basic(self, accuracy=0.001, approx4cowen=False, plot=False):
-        theFit, something = curve_fit(self.predictor_log, self.history.index, self.history.close_log, bounds=([-np.inf, -np.inf, -np.inf, 10**(-15)],
-                                                                                                              [np.inf, np.inf, 0, np.inf]))
+        theFit, something = curve_fit(Calculator.predictor_log, self.history.index, self.history.close_log, bounds=([-np.inf, -np.inf, -np.inf, 10**(-15)],
+                                                                                                                    [np.inf, np.inf, 0, np.inf]))
         a, b, c, d = theFit
         a_bu, b_bu, c_bu, d_bu = a, b, c, d
         LR_first = np.multiply(np.divide(np.log10(self.history.index-c), np.log10(d)), b) + a
@@ -92,8 +133,8 @@ class DataHandler:
         LR_last = LR_first
         while norm > accuracy:
             history_new = self.history.loc[self.history['close_log'] < LR_last]
-            theFit, something = curve_fit(self.predictor_log, history_new.index, history_new.close_log, p0=[a, b, c, d], bounds=([-np.inf, -np.inf, -np.inf, 0],
-                                                                                                                                 [np.inf, np.inf, 0, np.inf]))
+            theFit, something = curve_fit(Calculator.predictor_log, history_new.index, history_new.close_log, p0=[a, b, c, d], bounds=([-np.inf, -np.inf, -np.inf, 0],
+                                                                                                                                       [np.inf, np.inf, 0, np.inf]))
             a, b, c, d = theFit
             LR_new = np.multiply(np.divide(np.log10(self.history.index-c), np.log10(d)), b) + a
             norm = abs((LR_new - LR_last)).max()
@@ -106,8 +147,12 @@ class DataHandler:
         a, b, c, d = a_bu, b_bu, c_bu, d_bu
         while norm > accuracy:
             history_new = self.history.loc[self.history['close_log'] > LR_last]
-            theFit, something = curve_fit(self.predictor_log, history_new.index, history_new.close_log, p0=[a, b, c, d], bounds=([-np.inf, -np.inf, -np.inf, 0],
-                                                                                                                                 [np.inf, np.inf, 0, np.inf]))
+            theFit, something = curve_fit(Calculator.predictor_log, 
+                                          history_new.index, 
+                                          history_new.close_log, 
+                                          p0=[a, b, c, d], 
+                                          bounds=([-np.inf, -np.inf, -np.inf, 0],
+                                          [np.inf, np.inf, 0, np.inf]))                                                                                                                                
             a, b, c, d = theFit
             LR_new = np.multiply(np.divide(np.log10(self.history.index-c), np.log10(d)), b) + a
             norm = abs((LR_new - LR_last)).max()
@@ -123,7 +168,7 @@ class DataHandler:
             self.plot_log(['close_log', 'LR_bottom', 'LR_top'])
 
     def LR_lowHigh(self, accuracy=0.001, plot=False):
-        theFit, something = curve_fit(self.predictor_log, self.history.index, self.history.close_log, bounds=(-np.inf, [np.inf, np.inf, 0]))
+        theFit, something = curve_fit(Calculator.predictor_log, self.history.index, self.history.close_log, bounds=(-np.inf, [np.inf, np.inf, 0]))
         a, b, c = theFit
         a_bu, b_bu, c_bu = a, b, c
         LR_first = np.multiply(np.log10(self.history.index-c), b) + a
@@ -145,7 +190,7 @@ class DataHandler:
         a, b, c = a_bu, b_bu, c_bu
         while norm > accuracy:
             history_new = self.history.loc[self.history['close_log'] > LR_last]
-            theFit, something = curve_fit(self.predictor_log, history_new.index, history_new.close_log, p0=[a, b, c], bounds=(-np.inf, [np.inf, np.inf, 0]))
+            theFit, something = curve_fit(Calculator.predictor_log, history_new.index, history_new.close_log, p0=[a, b, c], bounds=(-np.inf, [np.inf, np.inf, 0]))
             a, b, c = theFit
             LR_new = np.multiply(np.log10(self.history.index-c), b) + a
             norm = abs((LR_new - LR_last)).max()
@@ -178,8 +223,9 @@ class DataHandler:
             h8 = history.loc['2020-03-12':'2020-11-05']
             history = pd.concat([h1, h2, h4, h5, h6, h7, h8])
             # history = pd.concat([h5, h6, h7, h8])
-            theFit, something = curve_fit(self.predictor_log, history.index_bu, history.close_log, bounds=([-np.inf, -np.inf, -np.inf, 10**(-15)],
-                                                                                                           [np.inf, np.inf, 0, np.inf]))
+            theFit, something = curve_fit(Calculator.predictor_log, history.index_bu, history.close_log, 
+                                          bounds=([-np.inf, -np.inf, -np.inf, 10**(-15)],
+                                          [np.inf, np.inf, 0, np.inf]))                                                                    
             a, b, c, d = theFit
             LR_last = np.multiply(np.divide(np.log10(self.history.index-c), np.log10(d)), b) + a
             del self.history['index_bu']
@@ -187,8 +233,11 @@ class DataHandler:
             LR_last = self.history['close_log']+1
             for i in range(2):
                 history_new = self.history.loc[self.history['close_log'] < LR_last]
-                theFit, something = curve_fit(self.predictor_log, history_new.index, history_new.close_log, bounds=([-np.inf, -np.inf, -np.inf, 10**(-15)],
-                                                                                                                    [np.inf, np.inf, 0, np.inf]))
+                theFit, something = curve_fit(Calculator.predictor_log, 
+                                              history_new.index, 
+                                              history_new.close_log, 
+                                              bounds=([-np.inf, -np.inf, -np.inf, 10**(-15)],
+                                              [np.inf, np.inf, 0, np.inf]))                                                  
                 a, b, c, d = theFit
                 LR_last = np.multiply(np.divide(np.log10(self.history.index-c), np.log10(d)), b) + a
         print(f'LR_cowen params: a={a}, b={b}, c={c}, d={d}')
@@ -199,26 +248,16 @@ class DataHandler:
     def normalizeByDescendingFit(self, column):
         pass
 
-    def plot_log(self, data_columns=['close_log'], right_yAxis=False, right_columns=['risk00']):
-        months = pd.to_datetime(self.history.day, format='%Y-%m-%d %H:%M:%S.%f')
-        history_toPlot = self.history.set_index(months, inplace=False)
-        for column in data_columns:
-            history_toPlot[column].plot()
-        if right_yAxis:
-            for column in right_columns:
-                history_toPlot[column].plot(secondary_y=True, x_compat=True)
-        plt.legend(loc='best')
-        plt.show()
 
 
 if __name__ == '__main__':
-    dataHandler = DataHandler('../data/btc-usd.csv', [50, 350])
+    dataHandler = Simple('../data/btc-usd.csv', [50, 350])
     # dataHandler.LR_basic()  # approx4cowen=True)
-    dataHandler.LR_cowen()  # nonBubble_fit=True)  # , plot=True)
+    ## dataHandler.LR_cowen()  # nonBubble_fit=True)  # , plot=True)
     # toPrintWhole = dataHandler.history.loc[(dataHandler.history['quotient_50_350_log'] < 0) & (dataHandler.history['LR_cowen'] < 0)]
-    toPrintWhole = dataHandler.history.loc[(dataHandler.history['LR_cowen'] < 0)]
-    dataHandler.cowen_relInd_1()  # plot=True)
-    dataHandler.getRisk_00(plot=True)
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-        # print(dataHandler.history)
-        print(toPrintWhole)
+    ## toPrintWhole = dataHandler.history.loc[(dataHandler.history['LR_cowen'] < 0)]
+    # dataHandler.cowen_relInd_1()  #plot=True)
+    dataHandler.getRisk(plot=True)
+    # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+    #     print(dataHandler.history)
+    #     # print(toPrintWhole)

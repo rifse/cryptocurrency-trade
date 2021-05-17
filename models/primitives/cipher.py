@@ -23,8 +23,22 @@ def decrypt(encrypted_file, line_number):  # encrypted_file is a path and must b
     cipher = AES.new(key, AES.MODE_EAX, nonce)
     data = cipher.decrypt_and_verify(ct, tag).decode('utf-8').split('\n')[line_number].split(' ')
 
-    return [part for part in data]
+    # return [part for part in data]
+    return list(data)
+
+def encrypt(file_out_name, file_in_name):
+
+    with open(file_in_name, 'r') as file_in:
+        data = file_in.read().encode('utf-8')
+
+    key = getpass.getpass('Choose password:').encode('utf-8')
+    cipher = AES.new(key, AES.MODE_EAX)
+    ciphertext, tag = cipher.encrypt_and_digest(data)
+    
+    with open(file_out_name, 'wb') as file_out:
+        [ file_out.write(x) for x in (cipher.nonce, tag, ciphertext) ]
 
 
 if __name__ == '__main__':
-    pass
+    ff = decrypt('_j.bin', 2)
+    print(ff)

@@ -8,6 +8,7 @@ from socket import gaierror  # , gethostbyname
 import bitstamp.client
 from primitives.configure_logging import Settings
 
+from pprint import pprint
 
 
 class Data:
@@ -77,8 +78,9 @@ class Data:
 class Adapter(bitstamp.client.Trading):
 
     def __init__(self, **kwds):
-        kwds['username'] = kwds.pop('user')
+        kwds['username'] = kwds.pop('user')  # change user to username?
         super().__init__(**kwds)
+        # pprint(self.__dict__)
 
     def balances(self, currencies):  # currencies is a list
         balances = {}
@@ -87,6 +89,7 @@ class Adapter(bitstamp.client.Trading):
         return balances
 
     def getMinOrder(self, pair):
+        # if minorder exists just get it, otherwise following:
         bq = pair.split('_')
         quote = bq[1]
         if quote == 'btc':
@@ -97,6 +100,9 @@ class Adapter(bitstamp.client.Trading):
             pass
         else:
             raise ValueError('Wrong pair format!')
+
+    def orders(self):
+        return self.user_transactions()
 
     def orderBook(self, pair):
         bq = pair.split('_')

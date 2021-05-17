@@ -1,9 +1,21 @@
-from binance.client import Client
+from binance import Client
+# from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 # from binance.websockets import BinanceSocketManager
 
 class Adapter(Client):
+
     # def __init__(self, api_key=None, api_secret=None):
-    #     super().__init__(api_key, api_secret)
+    def __init__(self, **kwds):
+        kwds['api_key'] = kwds.pop('key')  # change user to username?
+        kwds['api_secret'] = kwds.pop('secret')  # change user to username?
+        super().__init__(**kwds)
+
+    def balances(self, currencies=None):
+        return self.get_balance()
+
+    def orders(self, pairs=None):
+        for p in pairs:
+            self.get_order(symbol=p.split('_').upper().join(''))
 
     def orderBook(self):
         pass

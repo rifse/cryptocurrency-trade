@@ -1,4 +1,6 @@
 *.bin
 *.log
 *.swp
+data/dataframes
 __pycache__
+calculate-risk.py

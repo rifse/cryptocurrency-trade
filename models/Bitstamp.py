@@ -6,20 +6,20 @@ import websockets
 from socket import gaierror  # , gethostbyname
 # from bitstamp.client import Trading
 import bitstamp.client
-from primitives.configure_logging import Settings
+# from primitives.configure_logging import Settings
 
 from pprint import pprint
 
 
 class Data:
 
-    logging.config.dictConfig(Settings.load())
     logger = logging.getLogger('bitstamp')
+    print(logger.debug(logging.root.manager.loggerDict))
+
+    # logging.config.dictConfig(Settings.load())
     uri = 'wss://ws.bitstamp.net'
     channels = {'live_trades',} 
     pairs = {'btcusd': {}, 'ethbtc': {}, 'ethusd': {}, 'linketh': {}}
-
-    logger.debug(logging.root.manager.loggerDict)
 
     @classmethod
     def runForever(cls):
@@ -101,7 +101,7 @@ class Adapter(bitstamp.client.Trading):
         else:
             raise ValueError('Wrong pair format!')
 
-    def orders(self):
+    def orders(self, pairs=None):
         return self.user_transactions()
 
     def orderBook(self, pair):

@@ -4,6 +4,7 @@
     		"bitstamp": {"ln": 0},
     		"binance": {"ln": 1}
 	},
-	"currencies": ["eth", "btc", "link", "ada", "eur"]
+	"currencies": ["eth", "btc", "link", "ada", "eur"],
+	"pairs": ["eth_usdt", "ada_usdt"]
 		
 }

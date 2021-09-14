@@ -16,31 +16,32 @@ DATA = {'hitbtc': {'usdt':
      # 'lot_size_OCC': 1}}}
      # 'lot_size_OCC': 0.001}}}
 
-def sell(low, high, min_order, min_step, amount, max_orders=None):
+def sell(low, high, min_order, actual_min_order, min_step, amount, max_orders=None):
     quant_n = max_orders*(max_orders+1)/2 if max_orders else None
     quant_size = amount/quant_n if quant_n else None
-    if not max_orders or quant_size < min_order:
-        step_n, quant_n = _calculate_steps(int(amount/min_order))
+    digits = abs(math.floor(math.log(min_order, 10)))
+    if not max_orders or quant_size < actual_min_order:
+        step_n, quant_n = _calculate_steps(int(amount/actual_min_order))
     else:
-        min_order = quant_size
+        actual_min_order = quant_size
         step_n = max_orders
-    residue = (amount-(quant_n*min_order))/int(amount/min_order)
+    residue = (amount-(quant_n*actual_min_order))/int(amount/actual_min_order)
     dspread = max((high-low)/(step_n-1), min_step)
     _orders = [[
         i+1, 
         truncate(i*dspread+low),  # price
-        truncate((i+1)*(min_order+residue))] for i in range(step_n)]
+        round((i+1)*(actual_min_order+residue), digits)] for i in range(step_n)]
+        # truncate((i+1)*(actual_min_order))] for i in range(step_n)]
     return _orders
 
 def buy(high, low, min_order, min_step, amount, max_orders=None):
     quant_n = max_orders*(max_orders+1)/2 if max_orders else None
     quant_size = amount/quant_n if quant_n else None
-    base_min_order = high*min_order
+    base_min_order = quant_size if quant_size else high*min_order
     if not max_orders or quant_size < min_order:
         step_n, quant_n = _calculate_steps(int(amount/base_min_order))
         residue = (amount-(quant_n*base_min_order))/int(amount/base_min_order)
     else:
-        base_min_order = quant_size
         step_n = max_orders
         residue = 0
     dspread = max((high-low)/(step_n-1), min_step)
@@ -98,7 +99,7 @@ if __name__ == '__main__':
                 high=9.1, 
                 min_order=DATA['hitbtc']['usdt']['lot_size_OCC'],
                 min_step=DATA['hitbtc']['usdt']['price_step'],
-                max_orders=10,
+                max_orders=18,
                 amount=158)
     for i in range(len(orders_s)):
         print(orders_s[i])

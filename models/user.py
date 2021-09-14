@@ -1,3 +1,4 @@
+# import logging 
 import primitives.fromJson
 import primitives.cipher
 import primitives.dca_1
@@ -38,15 +39,28 @@ class Adapter:
     def limitOrder(self, price, pair, side, amount):
         return self.exchange.limitOrder(price, pair, side, amount)
 
-    # def splatterLimits(self, pair, side, low, high, min_order, min_step, amount):
+    def cancelOrder(self, pair, order_id=None, all_orders=False):
+        self.exchange.cancelOrder(pair, order_id, all_orders)
+
     def splatterLimits(self, pair, side, low, high, amount):
-        function = dca_1.buy if side == 'buy' else dca_1.sell
-        # temp_pair = self.exchange.prepareSplatter(pair)
-        infos = self.exchange.infos['pair']
-        if low < float(infos['min_price']) or high > float(infos['max_price']):
+        function = primitives.dca_1.buy if side == 'buy' else primitives.dca_1.sell
+        infos = self.exchange.infos[pair]
+        temp_price = high if side == 'buy' else low
+        actual_min_order = self.exchange.calculateMinOrder(pair=pair, price=temp_price)
+        if low < float(infos['min_price']) or high > float(infos['max_price']):  # floats unnecessary?
             print('WRONG PRICE RANGE, exiting...') 
-            return
-        # orders = function(low=low, high=high, min_order=infos['min_order'], min_step=infos['
+            return 
+        orders = function(
+                low=low, 
+                high=high, 
+                min_order=infos['min_order'],
+                actual_min_order=actual_min_order, 
+                min_step=infos['min_price'], 
+                amount=amount, 
+                max_orders=infos['max_num_orders']/2)
+        # return orders  # for testing without placing real orders uncomment this and comment following 2 lines
+        for o in orders:
+            self.limitOrder(price=o[1], pair=pair, side=side, amount=o[2])
 
     def crawlingStopLimit(self):
         pass
@@ -66,7 +80,9 @@ if __name__ == '__main__':
     pprint(test.balances())
     pprint(test.exchange.infos)
     # pprint(test.limitOrder(4500, 'eth_usdt', 'sell', 0.005))
-    # pprint(splatterLimits(
+    # pprint(test.cancelOrder('eth_usdt', all_orders=True))
+    pprint(test.splatterLimits(low=4400, high=12000, pair='eth_usdt', side='sell', amount=0.11572191))
     # pprint(test.orders(["ada_eth"]))
     # pprint(test.balances(currencies=test.data['currencies'])) # bitsamp only?
     # pprint(test.orders(["ada_usdt", "ada_eth", "link_eth"]))
+    # print(logging.root.manager.loggerDict)

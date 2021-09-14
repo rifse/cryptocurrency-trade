@@ -21,9 +21,12 @@ def decrypt(encrypted_file, line_number):  # encrypted_file is a path and must b
         nonce, tag, ct = [f.read(x) for x in (16, 16, -1)]
 
     cipher = AES.new(key, AES.MODE_EAX, nonce)
+    # print(cipher.decrypt_and_verify(ct, tag).decode('utf-8').split('\n'))
     data = cipher.decrypt_and_verify(ct, tag).decode('utf-8').split('\n')[line_number].split(' ')
 
     # return [part for part in data]
+    # print(list(data))
+
     return list(data)
 
 def encrypt(file_out_name, file_in_name):
@@ -40,5 +43,6 @@ def encrypt(file_out_name, file_in_name):
 
 
 if __name__ == '__main__':
-    ff = decrypt('_j.bin', 2)
-    print(ff)
+    # ff = decrypt('_j.bin', 2)
+    sd = encrypt('codes.bin', 'codes')
+    # print(ff)

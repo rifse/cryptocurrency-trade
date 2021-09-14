@@ -1,5 +1,9 @@
 from binance import Client
+from decimal import Decimal
 import datetime
+# import logging
+from pprint import pprint
+import math
 # from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 # from binance.websockets import BinanceSocketManager
 
@@ -10,6 +14,8 @@ class Adapter(Client):
         kwds['api_secret'] = kwds.pop('secret')  # change user to username?
         super().__init__(**kwds)
 
+        # self.logger = logging.getLogger('requests')
+        # print(logger.debug(logging.root.manager.loggerDict))
         self.infos = self.pairsInfo(pairs_list)
         # print(self.ping())
 
@@ -57,16 +63,22 @@ class Adapter(Client):
                 item['filters'] = {x.pop('filterType'): x for x in item['filters']}
                 temp_infos = {
                         'local_name': local_name,
-                        'min_order': item['filters']['LOT_SIZE']['minQty'],
-                        'max_order': item['filters']['LOT_SIZE']['maxQty'],
-                        'min_price': item['filters']['PRICE_FILTER']['minPrice'],
-                        'max_price': item['filters']['PRICE_FILTER']['maxPrice'],
-                        'max_num_orders': item['filters']['MAX_NUM_ORDERS']['maxNumOrders']}
+                        'min_order': float(item['filters']['LOT_SIZE']['minQty']), 
+                        'min_quote_order': float(item['filters']['MIN_NOTIONAL']['minNotional']), 
+                        'max_order': float(item['filters']['LOT_SIZE']['maxQty']),
+                        'min_price': float(item['filters']['PRICE_FILTER']['minPrice']),
+                        'max_price': float(item['filters']['PRICE_FILTER']['maxPrice']),
+                        'max_num_orders': int(item['filters']['MAX_NUM_ORDERS']['maxNumOrders'])}
                 infos.update({pairs_list[temp_pairs.index(local_name)]: temp_infos})
         return infos
 
     def orderBook(self):
         pass
+
+    def calculateMinOrder(self, pair, price):
+        infos = self.infos[pair]
+        decimals = abs(math.floor(math.log(infos['min_order'], 10)))
+        return round(max(infos['min_order'], infos['min_quote_order']/price), decimals)
 
     def tickers(self):
         return self.get_all_tickers()
@@ -74,7 +86,7 @@ class Adapter(Client):
     def marketOrder(self, pair, side, amount):
         '''Not tested yet!'''
         return self.create_order(
-                symbol=pair.upper().split('_').join(''),
+                symbol=''.join(pair.upper().split('_')),
                 side=side.upper(),
                 type='MARKET',
                 timeInForce='GTC',
@@ -88,7 +100,20 @@ class Adapter(Client):
                 type='LIMIT',
                 timeInForce='GTC',
                 quantity=amount,
+                # quantity=Decimal(amount),
                 price=str(price))
+
+    def cancelOrder(self, pair, order_id=None, all_orders=False):
+        # https://github.com/sammchardy/python-binance/issues/533
+        # binance_client._delete('openOrders', True, data={'symbol': 'DOGEBTC'})
+        pair = ''.join(pair.upper().split('_'))
+        if all_orders:
+            self._delete('openOrders', True, data={'symbol': pair})
+        else:
+            if not order_id:
+                print('MUST COMMAND all_orders=True OR PROVIDE order_id, exiting..')
+            else:
+                self.cancel_order(symbol=pair, orderId=order_id)
 
 
 if __name__ == '__main__':

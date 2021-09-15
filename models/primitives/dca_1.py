@@ -19,7 +19,10 @@ DATA = {'hitbtc': {'usdt':
 def sell(low, high, min_order, actual_min_order, min_step, amount, max_orders=None):
     quant_n = max_orders*(max_orders+1)/2 if max_orders else None
     quant_size = amount/quant_n if quant_n else None
-    digits = abs(math.floor(math.log(min_order, 10)))
+    # digits = abs(math.floor(math.log(min_order, 10))) if min_order < 1 else 0  # !
+    # digits = abs(math.floor(math.log(actual_min_order, 10))) if min_order < 1 else 0  # !
+    log10 = math.floor(math.log(min_order, 10))
+    digits = abs(log10) if log10 < 0 else 0
     if not max_orders or quant_size < actual_min_order:
         step_n, quant_n = _calculate_steps(int(amount/actual_min_order))
     else:
@@ -30,14 +33,17 @@ def sell(low, high, min_order, actual_min_order, min_step, amount, max_orders=No
     _orders = [[
         i+1, 
         truncate(i*dspread+low),  # price
-        round((i+1)*(actual_min_order+residue), digits)] for i in range(step_n)]
+        round((i+1)*(actual_min_order+residue), digits) if digits > 0 else int((i+1)*(actual_min_order+residue))] for i in range(step_n)]  # amount [base]
         # truncate((i+1)*(actual_min_order))] for i in range(step_n)]
     return _orders
 
-def buy(high, low, min_order, min_step, amount, max_orders=None):
+def buy(high, low, min_order, actual_min_order, min_step, amount, max_orders=None):
     quant_n = max_orders*(max_orders+1)/2 if max_orders else None
     quant_size = amount/quant_n if quant_n else None
-    base_min_order = quant_size if quant_size else high*min_order
+    # base_min_order = quant_size if quant_size else high*min_order
+    base_min_order = max(quant_size, high*actual_min_order) if quant_size else high*actual_min_order
+    log10 = math.floor(math.log(min_order, 10))
+    digits = abs(log10) if log10 < 0 else 0
     if not max_orders or quant_size < min_order:
         step_n, quant_n = _calculate_steps(int(amount/base_min_order))
         residue = (amount-(quant_n*base_min_order))/int(amount/base_min_order)
@@ -48,9 +54,28 @@ def buy(high, low, min_order, min_step, amount, max_orders=None):
     _orders = [[
         i+1, 
         truncate(high-i*dspread),  # price
-        truncate((i+1)*(base_min_order+residue)),  # cost
-        truncate((i+1)*(base_min_order+residue)/(high-i*dspread))] for i in range(step_n)]  # amount of coin to buy
+        round((i+1)*(base_min_order+residue)/(high-i*dspread), digits) if digits > 0 else int((i+1)*(base_min_order+residue)/(high-i*dspread)),  # cost [quote]
+        # round((i+1)*(base_min_order+residue), digits) if digits > 0 else int((i+1)*(base_min_order+residue))] for i in range(step_n)]  # amount of coin to buy [base]
+        truncate((i+1)*(base_min_order+residue))] for i in range(step_n)]  # cost
     return _orders
+
+# def buy(high, low, min_order, min_step, amount, max_orders=None):
+#     quant_n = max_orders*(max_orders+1)/2 if max_orders else None
+#     quant_size = amount/quant_n if quant_n else None
+#     base_min_order = quant_size if quant_size else high*min_order
+#     if not max_orders or quant_size < min_order:
+#         step_n, quant_n = _calculate_steps(int(amount/base_min_order))
+#         residue = (amount-(quant_n*base_min_order))/int(amount/base_min_order)
+#     else:
+#         step_n = max_orders
+#         residue = 0
+#     dspread = max((high-low)/(step_n-1), min_step)
+#     _orders = [[
+#         i+1, 
+#         truncate(high-i*dspread),  # price
+#         truncate((i+1)*(base_min_order+residue)),  # cost
+#         truncate((i+1)*(base_min_order+residue)/(high-i*dspread))] for i in range(step_n)]  # amount of coin to buy
+#     return _orders
 
 def _calculate_steps(max_sum):
     s, i = 0, 0

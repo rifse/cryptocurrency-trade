@@ -5,6 +5,6 @@
     		"binance": {"ln": 1}
 	},
 	"currencies": ["eth", "btc", "link", "ada", "eur"],
-	"pairs": ["eth_usdt", "ada_usdt"]
+	"pairs": ["eth_usdt", "ada_usdt", "ada_eth"]
 		
 }

@@ -54,6 +54,7 @@ class Adapter:
                 low=low, 
                 high=high, 
                 min_order=infos['min_order'],
+                # min_quote_order=infos['min_quote_order'],
                 actual_min_order=actual_min_order, 
                 min_step=infos['min_price'], 
                 amount=amount, 
@@ -79,9 +80,12 @@ if __name__ == '__main__':
     # test.marketOrder(pair='eth_eur', side='sell', amount=0.006)
     pprint(test.balances())
     pprint(test.exchange.infos)
-    # pprint(test.limitOrder(4500, 'eth_usdt', 'sell', 0.005))
+    # pprint(test.limitOrder(0.0006357, 'ada_eth', 'buy', 7.9))
     # pprint(test.cancelOrder('eth_usdt', all_orders=True))
-    pprint(test.splatterLimits(low=4400, high=12000, pair='eth_usdt', side='sell', amount=0.11572191))
+    # pprint(test.cancelOrder('eth_usdt', all_orders=True))
+    # pprint(test.cancelOrder('eth_ada', all_orders=True))
+    pprint(test.splatterLimits(low=4400, high=12000, pair='eth_usdt', side='sell', amount=0.11572191/2))
+    # pprint(test.splatterLimits(low=0.0002, high=0.0006357, pair='ada_eth', side='buy', amount=0.11572191/2))
     # pprint(test.orders(["ada_eth"]))
     # pprint(test.balances(currencies=test.data['currencies'])) # bitsamp only?
     # pprint(test.orders(["ada_usdt", "ada_eth", "link_eth"]))
